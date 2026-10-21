@@ -23,6 +23,21 @@ Requiere JDK 17 o superior. El proyecto usa Maven y no necesita dependencias ext
 - El botón **Cómo usar** abre una guía completa dentro de la aplicación.
 - **Cancelar selección** permite reiniciar una conexión que todavía no se ha completado.
 
+## Elegir las capitales visibles
+
+Edita `config/capitales.txt`. Cada linea contiene el nombre de la carpeta de una capital, por ejemplo:
+
+```text
+roma
+atenas
+# budapest queda oculta
+tunez
+```
+
+Para ocultar una capital, elimina su linea o coloca `#` al principio. Guarda el archivo y pulsa **Recargar capitales** en la parte superior del mapa. No es necesario reiniciar la aplicacion.
+
+Las lineas vacias, los comentarios y los nombres no reconocidos se ignoran. Si el archivo no existe o no se puede leer, la aplicacion muestra todas las capitales disponibles como comportamiento de seguridad.
+
 La aplicacion crea automaticamente las carpetas que falten al iniciarse. El repositorio ya incluye una carpeta para cada capital.
 
 El fondo se genera a partir de geometria publica de Natural Earth mediante `tools/generate_map.py`. El encuadre actual sigue la referencia proporcionada: Luxemburgo/Berna, Berlin/Varsovia, Chisinau y Atenas, con margen adicional para Tunez. Mapa y marcadores comparten los limites 5.5/30.5 de longitud y 35/54.5 de latitud.

@@ -11,8 +11,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -28,6 +30,7 @@ public final class AppCumple extends JFrame {
     private static final Color ACCENT = new Color(75, 218, 178);
     private static final Color SELECTED = new Color(255, 104, 133);
     private static final Path IMAGE_ROOT = Path.of("imagenes-capitales");
+    private static final Path CAPITAL_CONFIG = Path.of("config", "capitales.txt");
     private static final Set<String> MAIN_CAPITALS = Set.of(
             "Amsterdam", "Ankara", "Atenas", "Belgrado", "Berlin", "Berna", "Bratislava",
             "Bruselas", "Bucarest", "Budapest", "Chisinau", "Copenhague", "Dublin", "Estocolmo",
@@ -36,6 +39,7 @@ public final class AppCumple extends JFrame {
             "Sarajevo", "Skopie", "Sofia", "Tallin", "Tirana", "Tunez", "Varsovia", "Viena", "Vilna", "Zagreb");
 
     private final List<Capital> capitals = createCapitals();
+    private Set<String> enabledCapitalFolders = loadCapitalConfig();
     private final List<Connection> connections = new ArrayList<>();
     private final DefaultListModel<Connection> connectionModel = new DefaultListModel<>();
     private final MapPanel mapPanel = new MapPanel();
@@ -135,7 +139,16 @@ public final class AppCumple extends JFrame {
         JLabel legend = new JLabel("● Capital   ━ Conexión   ● Primera selección");
         legend.setForeground(MUTED);
         legend.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
-        bar.add(legend, BorderLayout.EAST);
+        JButton reload = new JButton("Recargar capitales");
+        styleButton(reload, new Color(49, 63, 86), TEXT);
+        reload.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
+        reload.setBorder(new EmptyBorder(7, 11, 7, 11));
+        reload.addActionListener(e -> reloadCapitalConfig());
+        JPanel mapActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        mapActions.setOpaque(false);
+        mapActions.add(legend);
+        mapActions.add(reload);
+        bar.add(mapActions, BorderLayout.EAST);
         card.add(bar, BorderLayout.NORTH);
         mapPanel.setBorder(BorderFactory.createLineBorder(new Color(55, 66, 82)));
         card.add(mapPanel, BorderLayout.CENTER);
@@ -258,6 +271,37 @@ public final class AppCumple extends JFrame {
         }
     }
 
+    private Set<String> loadCapitalConfig() {
+        Set<String> all = new LinkedHashSet<>();
+        capitals.forEach(capital -> all.add(capital.folder()));
+        if (!Files.isRegularFile(CAPITAL_CONFIG)) return all;
+        try {
+            Set<String> configured = new LinkedHashSet<>();
+            for (String rawLine : Files.readAllLines(CAPITAL_CONFIG, StandardCharsets.UTF_8)) {
+                String line = rawLine.strip().toLowerCase(Locale.ROOT);
+                if (line.isEmpty() || line.startsWith("#")) continue;
+                int comment = line.indexOf('#');
+                if (comment >= 0) line = line.substring(0, comment).strip();
+                if (all.contains(line)) configured.add(line);
+            }
+            return configured;
+        } catch (IOException ex) {
+            return all;
+        }
+    }
+
+    private void reloadCapitalConfig() {
+        enabledCapitalFolders = loadCapitalConfig();
+        firstForConnection = null;
+        connections.removeIf(connection -> !enabledCapitalFolders.contains(connection.a().folder())
+                || !enabledCapitalFolders.contains(connection.b().folder()));
+        connectionModel.clear();
+        connections.forEach(connectionModel::addElement);
+        long visible = capitals.stream().filter(mapPanel::isVisible).count();
+        instruction.setText("Configuración recargada · " + visible + " capitales visibles.");
+        mapPanel.repaint();
+    }
+
     private final class MapPanel extends JPanel {
         private static final double MIN_LON = 5.5, MAX_LON = 30.5, MIN_LAT = 35.0, MAX_LAT = 54.5;
         private final BufferedImage backgroundMap = loadBackgroundMap();
@@ -362,7 +406,8 @@ public final class AppCumple extends JFrame {
         }
 
         private boolean isVisible(Capital capital) {
-            return capital.longitude() >= MIN_LON && capital.longitude() <= MAX_LON
+            return enabledCapitalFolders.contains(capital.folder())
+                    && capital.longitude() >= MIN_LON && capital.longitude() <= MAX_LON
                     && capital.latitude() >= MIN_LAT && capital.latitude() <= MAX_LAT;
         }
 
