@@ -1,6 +1,6 @@
 # App Cumple Marcos
 
-Aplicacion de escritorio Java Swing que abre maximizada y muestra un mapa interactivo de Europa con sus capitales.
+Aplicacion de escritorio Java Swing que abre maximizada y muestra un mapa satelital en blanco y negro de Europa central y sudoriental con sus principales capitales.
 
 ## Abrir en NetBeans
 
@@ -15,6 +15,7 @@ Requiere JDK 17 o superior. El proyecto usa Maven y no necesita dependencias ext
 ## Uso
 
 - Haz clic en una capital para abrir su galeria.
+- El mapa no muestra nombres de paises: las capitales se representan mediante marcadores interactivos.
 - Coloca imagenes JPG, JPEG, PNG, GIF o BMP dentro de `imagenes-capitales/<capital>/`.
 - Activa **Modo unir capitales** y pulsa dos capitales para dibujar una linea entre ellas.
 - Puedes repetir el proceso para crear todas las uniones necesarias.

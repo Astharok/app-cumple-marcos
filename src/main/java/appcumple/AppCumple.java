@@ -6,9 +6,9 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -165,7 +165,8 @@ public final class AppCumple extends JFrame {
     }
 
     private final class MapPanel extends JPanel {
-        private static final double MIN_LON = -25, MAX_LON = 45, MIN_LAT = 34, MAX_LAT = 72;
+        private static final double MIN_LON = 5.5, MAX_LON = 35.5, MIN_LAT = 33.5, MAX_LAT = 51.5;
+        private final BufferedImage backgroundMap = loadBackgroundMap();
         private Capital hovered;
 
         private MapPanel() {
@@ -194,52 +195,33 @@ public final class AppCumple extends JFrame {
             super.paintComponent(graphics);
             Graphics2D g = (Graphics2D) graphics.create();
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            paintOcean(g);
-            paintEurope(g);
+            g.setColor(Color.BLACK);
+            g.fillRect(0, 0, getWidth(), getHeight());
+            Rectangle map = mapBounds();
+            g.drawImage(backgroundMap, map.x, map.y, map.width, map.height, null);
             paintConnections(g);
             paintCapitals(g);
             g.dispose();
         }
 
-        private void paintOcean(Graphics2D g) {
-            g.setPaint(new GradientPaint(0, 0, new Color(21, 57, 79), 0, getHeight(), new Color(10, 30, 50)));
-            g.fillRect(0, 0, getWidth(), getHeight());
-            g.setColor(new Color(255, 255, 255, 12));
-            for (int y = 35; y < getHeight(); y += 45) g.drawLine(0, y, getWidth(), y);
-        }
-
-        private void paintEurope(Graphics2D g) {
-            double[][] outline = {{-10,36},{-9,43},{-4,44},{-1,46},{-5,48},{-10,52},{-8,58},{-3,59},
-                    {1,51},{5,52},{8,55},{11,55},{8,58},{5,58},{8,63},{12,68},{18,71},{26,70},
-                    {31,66},{28,61},{32,59},{38,57},{42,51},{37,45},{29,42},{25,39},{20,40},{17,45},
-                    {13,45},{15,41},{12,38},{6,43},{3,43},{0,40}};
-            Path2D path = new Path2D.Double();
-            for (int i = 0; i < outline.length; i++) {
-                Point p = project(outline[i][0], outline[i][1]);
-                if (i == 0) path.moveTo(p.x, p.y); else path.lineTo(p.x, p.y);
+        private Rectangle mapBounds() {
+            double imageRatio = (double) backgroundMap.getWidth() / backgroundMap.getHeight();
+            double panelRatio = getHeight() == 0 ? imageRatio : (double) getWidth() / getHeight();
+            if (panelRatio > imageRatio) {
+                int height = getHeight();
+                int width = (int) Math.round(height * imageRatio);
+                return new Rectangle((getWidth() - width) / 2, 0, width, height);
             }
-            path.closePath();
-            g.setColor(LAND); g.fill(path);
-            g.setStroke(new BasicStroke(2f)); g.setColor(LAND_EDGE); g.draw(path);
-            paintIsland(g, -4, 55, 4, 9, -12);
-            paintIsland(g, -19, 65, 7, 4, -8);
-            paintIsland(g, 16, 38, 3, 2, 0);
-            paintIsland(g, 15, 42, 2, 5, -22);
-        }
-
-        private void paintIsland(Graphics2D g, double lon, double lat, double lonSize, double latSize, double angle) {
-            Point center = project(lon, lat), edge = project(lon + lonSize, lat - latSize);
-            int width = Math.max(8, Math.abs(edge.x - center.x)), height = Math.max(8, Math.abs(edge.y - center.y));
-            g.rotate(Math.toRadians(angle), center.x, center.y);
-            g.setColor(LAND); g.fillOval(center.x - width / 2, center.y - height / 2, width, height);
-            g.setColor(LAND_EDGE); g.drawOval(center.x - width / 2, center.y - height / 2, width, height);
-            g.rotate(Math.toRadians(-angle), center.x, center.y);
+            int width = getWidth();
+            int height = (int) Math.round(width / imageRatio);
+            return new Rectangle(0, (getHeight() - height) / 2, width, height);
         }
 
         private void paintConnections(Graphics2D g) {
             g.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             g.setColor(new Color(255, 192, 92, 210));
             for (Connection connection : connections) {
+                if (!isVisible(connection.a()) || !isVisible(connection.b())) continue;
                 Point a = project(connection.a().longitude(), connection.a().latitude());
                 Point b = project(connection.b().longitude(), connection.b().latitude());
                 g.drawLine(a.x, a.y, b.x, b.y);
@@ -248,6 +230,7 @@ public final class AppCumple extends JFrame {
 
         private void paintCapitals(Graphics2D g) {
             for (Capital capital : capitals) {
+                if (!isVisible(capital)) continue;
                 Point point = project(capital.longitude(), capital.latitude());
                 boolean pending = capital.equals(firstForConnection), hot = capital.equals(hovered);
                 int radius = pending || hot ? 8 : 6;
@@ -266,16 +249,36 @@ public final class AppCumple extends JFrame {
         }
 
         private Capital findCapital(Point mouse) {
-            return capitals.stream().filter(c -> project(c.longitude(), c.latitude()).distance(mouse) <= 13)
+            return capitals.stream().filter(this::isVisible)
+                    .filter(c -> project(c.longitude(), c.latitude()).distance(mouse) <= 13)
                     .min(Comparator.comparingDouble(c -> project(c.longitude(), c.latitude()).distance(mouse)))
                     .orElse(null);
         }
 
         private Point project(double longitude, double latitude) {
-            int margin = 28;
-            double x = margin + (longitude - MIN_LON) / (MAX_LON - MIN_LON) * (getWidth() - margin * 2.0);
-            double y = margin + (MAX_LAT - latitude) / (MAX_LAT - MIN_LAT) * (getHeight() - margin * 2.0);
+            Rectangle map = mapBounds();
+            double x = map.x + (longitude - MIN_LON) / (MAX_LON - MIN_LON) * map.width;
+            double y = map.y + (MAX_LAT - latitude) / (MAX_LAT - MIN_LAT) * map.height;
             return new Point((int) Math.round(x), (int) Math.round(y));
+        }
+
+        private boolean isVisible(Capital capital) {
+            return capital.longitude() >= MIN_LON && capital.longitude() <= MAX_LON
+                    && capital.latitude() >= MIN_LAT && capital.latitude() <= MAX_LAT;
+        }
+
+        private BufferedImage loadBackgroundMap() {
+            try (InputStream stream = AppCumple.class.getResourceAsStream("/images/mapa-europa-bn.png")) {
+                if (stream == null) throw new IOException("No se encontro el mapa");
+                return ImageIO.read(stream);
+            } catch (IOException ex) {
+                BufferedImage fallback = new BufferedImage(1200, 900, BufferedImage.TYPE_BYTE_GRAY);
+                Graphics2D graphics = fallback.createGraphics();
+                graphics.setPaint(new GradientPaint(0, 0, Color.DARK_GRAY, 1200, 900, Color.BLACK));
+                graphics.fillRect(0, 0, 1200, 900);
+                graphics.dispose();
+                return fallback;
+            }
         }
     }
 
