@@ -25,7 +25,7 @@ Requiere JDK 17 o superior. El proyecto usa Maven y no necesita dependencias ext
 
 La aplicacion crea automaticamente las carpetas que falten al iniciarse. El repositorio ya incluye una carpeta para cada capital.
 
-El fondo se genera a partir de geometria publica de Natural Earth mediante `tools/generate_map.py`. El recorte actual elimina Francia y el oeste, y termina antes de Kiev: mapa y marcadores comparten los limites 8/29.8 de longitud y 35/61.5 de latitud.
+El fondo se genera a partir de geometria publica de Natural Earth mediante `tools/generate_map.py`. El encuadre actual sigue la referencia proporcionada: Luxemburgo/Berna, Berlin/Varsovia, Chisinau y Atenas, con margen adicional para Tunez. Mapa y marcadores comparten los limites 5.5/30.5 de longitud y 35/54.5 de latitud.
 Natural Earth distribuye estos datos cartograficos como dominio publico.
 
 El JAR generado por NetBeans queda en `target/app-cumple-marcos-1.0-SNAPSHOT.jar`.

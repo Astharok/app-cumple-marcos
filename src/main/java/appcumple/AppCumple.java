@@ -259,7 +259,7 @@ public final class AppCumple extends JFrame {
     }
 
     private final class MapPanel extends JPanel {
-        private static final double MIN_LON = 8.0, MAX_LON = 29.8, MIN_LAT = 35.0, MAX_LAT = 61.5;
+        private static final double MIN_LON = 5.5, MAX_LON = 30.5, MIN_LAT = 35.0, MAX_LAT = 54.5;
         private final BufferedImage backgroundMap = loadBackgroundMap();
         private Capital hovered;
 
