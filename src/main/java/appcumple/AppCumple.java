@@ -40,8 +40,8 @@ public final class AppCumple extends JFrame {
     private final DefaultListModel<Connection> connectionModel = new DefaultListModel<>();
     private final MapPanel mapPanel = new MapPanel();
     private final GalleryPanel galleryPanel = new GalleryPanel();
-    private final JToggleButton connectMode = new JToggleButton("Modo unir capitales");
-    private final JLabel instruction = new JLabel("Activa el modo unir para seleccionar dos capitales.");
+    private final JToggleButton connectMode = new JToggleButton("Conectar capitales");
+    private final JLabel instruction = new JLabel("Explora el mapa o activa el modo conexión.");
     private Capital firstForConnection;
 
     public static void main(String[] args) {
@@ -61,32 +61,95 @@ public final class AppCumple extends JFrame {
     }
 
     private JComponent createContent() {
-        JPanel root = new JPanel(new BorderLayout(18, 18));
+        JPanel root = new JPanel(new BorderLayout(16, 16));
         root.setBackground(BG);
-        root.setBorder(new EmptyBorder(20, 24, 20, 24));
-        JPanel heading = new JPanel(new BorderLayout());
+        root.setBorder(new EmptyBorder(18, 22, 18, 22));
+
+        JPanel heading = new JPanel(new BorderLayout(18, 0));
         heading.setOpaque(false);
-        JLabel title = new JLabel("CAPITALES DE EUROPA");
+        JPanel brand = new JPanel(new GridLayout(0, 1, 0, 2));
+        brand.setOpaque(false);
+        JLabel title = new JLabel("Capitales de Europa");
         title.setForeground(TEXT);
-        title.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 25));
-        JLabel subtitle = new JLabel("Selecciona una capital para ver sus imagenes");
+        title.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 27));
+        JLabel subtitle = new JLabel("Un mapa de recuerdos, rutas y ciudades");
         subtitle.setForeground(MUTED);
-        subtitle.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 15));
-        heading.add(title, BorderLayout.WEST);
-        heading.add(subtitle, BorderLayout.EAST);
+        subtitle.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
+        brand.add(title);
+        brand.add(subtitle);
+        heading.add(brand, BorderLayout.WEST);
+
+        JLabel guide = new JLabel("<html><div style='text-align:right'><b>1.</b> Pulsa una capital &nbsp;&nbsp; "
+                + "<b>2.</b> Consulta sus fotos &nbsp;&nbsp; <b>3.</b> Activa Conectar para crear rutas</div></html>");
+        guide.setForeground(MUTED);
+        guide.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 13));
+        JButton help = new JButton("Cómo usar");
+        help.setBackground(new Color(55, 67, 88));
+        help.setForeground(TEXT);
+        help.setFocusPainted(false);
+        help.setBorder(new EmptyBorder(9, 14, 9, 14));
+        help.addActionListener(e -> showHelp());
+        JPanel guidance = new JPanel(new FlowLayout(FlowLayout.RIGHT, 14, 0));
+        guidance.setOpaque(false);
+        guidance.add(guide);
+        guidance.add(help);
+        heading.add(guidance, BorderLayout.EAST);
         root.add(heading, BorderLayout.NORTH);
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, mapPanel, createSidebar());
+
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, createMapCard(), createSidebar());
         split.setResizeWeight(.72);
-        split.setDividerSize(8);
+        split.setContinuousLayout(true);
+        split.setDividerSize(7);
         split.setBorder(null);
+        split.setBackground(BG);
         root.add(split, BorderLayout.CENTER);
         return root;
+    }
+
+    private void showHelp() {
+        JLabel content = new JLabel("<html><div style='width:430px'>"
+                + "<h2>Cómo utilizar el mapa</h2>"
+                + "<b>Explorar fotografías</b><br>1. Busca una capital en el mapa.<br>"
+                + "2. Pulsa su marcador para abrir la galería lateral.<br>"
+                + "3. Pulsa una miniatura para verla a mayor tamaño.<br><br>"
+                + "<b>Crear una conexión</b><br>1. Pulsa <i>Conectar capitales</i>.<br>"
+                + "2. Elige la capital de origen y después la de destino.<br>"
+                + "3. La ruta aparecerá en el mapa y en la lista lateral.<br><br>"
+                + "<b>Eliminar una conexión</b><br>Selecciona la ruta en la lista y pulsa "
+                + "<i>Eliminar ruta seleccionada</i>.<br><br>"
+                + "<b>Añadir fotografías</b><br>Copia las imágenes en "
+                + "<code>imagenes-capitales/&lt;nombre&gt;/</code> y vuelve a pulsar la capital."
+                + "</div></html>");
+        content.setBorder(new EmptyBorder(8, 12, 8, 12));
+        JOptionPane.showMessageDialog(this, content, "Guía de uso", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private JComponent createMapCard() {
+        JPanel card = new JPanel(new BorderLayout(0, 10));
+        card.setBackground(PANEL);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(48, 59, 78)), new EmptyBorder(12, 12, 12, 12)));
+        JPanel bar = new JPanel(new BorderLayout());
+        bar.setOpaque(false);
+        JLabel heading = new JLabel("MAPA INTERACTIVO");
+        heading.setForeground(TEXT);
+        heading.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 13));
+        bar.add(heading, BorderLayout.WEST);
+        JLabel legend = new JLabel("● Capital   ━ Conexión   ● Primera selección");
+        legend.setForeground(MUTED);
+        legend.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
+        bar.add(legend, BorderLayout.EAST);
+        card.add(bar, BorderLayout.NORTH);
+        mapPanel.setBorder(BorderFactory.createLineBorder(new Color(55, 66, 82)));
+        card.add(mapPanel, BorderLayout.CENTER);
+        return card;
     }
 
     private JComponent createSidebar() {
         JPanel sidebar = new JPanel(new BorderLayout(0, 14));
         sidebar.setBackground(PANEL);
-        sidebar.setBorder(new EmptyBorder(18, 18, 18, 18));
+        sidebar.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(48, 59, 78)), new EmptyBorder(18, 18, 18, 18)));
         sidebar.setMinimumSize(new Dimension(330, 500));
         sidebar.setPreferredSize(new Dimension(390, 700));
         galleryPanel.setPreferredSize(new Dimension(340, 330));
@@ -94,7 +157,7 @@ public final class AppCumple extends JFrame {
 
         JPanel connectionArea = new JPanel(new BorderLayout(0, 10));
         connectionArea.setOpaque(false);
-        JLabel connectionTitle = new JLabel("UNIONES ENTRE CAPITALES");
+        JLabel connectionTitle = new JLabel("RUTAS CREADAS");
         connectionTitle.setForeground(TEXT);
         connectionTitle.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
         connectionArea.add(connectionTitle, BorderLayout.NORTH);
@@ -102,21 +165,30 @@ public final class AppCumple extends JFrame {
         connectionList.setBackground(new Color(18, 26, 41));
         connectionList.setForeground(TEXT);
         connectionList.setSelectionBackground(new Color(65, 78, 104));
+        connectionList.setSelectionForeground(Color.WHITE);
+        connectionList.setFixedCellHeight(30);
+        connectionList.setBorder(new EmptyBorder(4, 6, 4, 6));
         connectionList.setVisibleRowCount(5);
-        connectionArea.add(new JScrollPane(connectionList), BorderLayout.CENTER);
+        JScrollPane connectionScroll = new JScrollPane(connectionList);
+        connectionScroll.setBorder(BorderFactory.createLineBorder(new Color(51, 63, 83)));
+        connectionArea.add(connectionScroll, BorderLayout.CENTER);
 
         connectMode.setFocusPainted(false);
-        connectMode.setBackground(new Color(50, 65, 88));
-        connectMode.setForeground(TEXT);
+        connectMode.setBackground(ACCENT);
+        connectMode.setBorder(new EmptyBorder(10, 12, 10, 12));
+        connectMode.setForeground(new Color(15, 23, 35));
         connectMode.addActionListener(e -> {
             firstForConnection = null;
+            connectMode.setText(connectMode.isSelected() ? "Conectando: selecciona 2 capitales" : "Conectar capitales");
+            connectMode.setBackground(connectMode.isSelected() ? new Color(57, 156, 126) : ACCENT);
             updateInstruction();
             mapPanel.repaint();
         });
-        JButton delete = new JButton("Eliminar union seleccionada");
+        JButton delete = new JButton("Eliminar ruta seleccionada");
         delete.setBackground(SELECTED);
         delete.setForeground(Color.WHITE);
         delete.setFocusPainted(false);
+        delete.setBorder(new EmptyBorder(9, 12, 9, 12));
         delete.addActionListener(e -> {
             int index = connectionList.getSelectedIndex();
             if (index >= 0) {
@@ -127,10 +199,23 @@ public final class AppCumple extends JFrame {
         });
         instruction.setForeground(MUTED);
         instruction.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
+        instruction.setBorder(new EmptyBorder(2, 2, 2, 2));
+
+        JButton cancel = new JButton("Cancelar selección");
+        cancel.setBackground(new Color(55, 67, 88));
+        cancel.setForeground(TEXT);
+        cancel.setFocusPainted(false);
+        cancel.setBorder(new EmptyBorder(8, 12, 8, 12));
+        cancel.addActionListener(e -> {
+            firstForConnection = null;
+            updateInstruction();
+            mapPanel.repaint();
+        });
         JPanel controls = new JPanel(new GridLayout(0, 1, 0, 7));
         controls.setOpaque(false);
         controls.add(connectMode);
         controls.add(instruction);
+        controls.add(cancel);
         controls.add(delete);
         connectionArea.add(controls, BorderLayout.SOUTH);
         sidebar.add(connectionArea, BorderLayout.SOUTH);
@@ -142,7 +227,10 @@ public final class AppCumple extends JFrame {
         if (!connectMode.isSelected()) return;
         if (firstForConnection == null) {
             firstForConnection = capital;
-        } else if (!firstForConnection.equals(capital)) {
+        } else if (firstForConnection.equals(capital)) {
+            instruction.setText("Elige una capital distinta para completar la ruta.");
+            return;
+        } else {
             Connection connection = new Connection(firstForConnection, capital);
             if (connections.stream().noneMatch(current -> current.samePair(connection))) {
                 connections.add(connection);
@@ -155,9 +243,9 @@ public final class AppCumple extends JFrame {
     }
 
     private void updateInstruction() {
-        if (!connectMode.isSelected()) instruction.setText("Activa el modo unir para seleccionar dos capitales.");
-        else if (firstForConnection == null) instruction.setText("Selecciona la primera capital del par.");
-        else instruction.setText("Primera: " + firstForConnection.name() + ". Selecciona la segunda.");
+        if (!connectMode.isSelected()) instruction.setText("Explora el mapa o activa el modo conexión.");
+        else if (firstForConnection == null) instruction.setText("Paso 1 de 2 · Selecciona la primera capital.");
+        else instruction.setText("Paso 2 de 2 · Desde " + firstForConnection.name() + ", elige el destino.");
     }
 
     private void createImageDirectories() {
@@ -184,6 +272,7 @@ public final class AppCumple extends JFrame {
                     if (nearest != hovered) {
                         hovered = nearest;
                         setToolTipText(nearest == null ? null : nearest.name());
+                        setCursor(nearest == null ? Cursor.getDefaultCursor() : Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
                         repaint();
                     }
                 }
@@ -294,15 +383,17 @@ public final class AppCumple extends JFrame {
 
     private static final class GalleryPanel extends JPanel {
         private final JLabel title = new JLabel("Selecciona una capital");
-        private final JLabel path = new JLabel("Las fotografias apareceran aqui.");
+        private final JLabel path = new JLabel("Pulsa un marcador del mapa para comenzar.");
+        private final JLabel section = new JLabel("GALERÍA DE LA CAPITAL");
         private final JPanel images = new JPanel(new GridLayout(0, 2, 8, 8));
 
         private GalleryPanel() {
             setOpaque(false); setLayout(new BorderLayout(0, 10));
+            section.setForeground(ACCENT); section.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
             title.setForeground(TEXT); title.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 24));
             path.setForeground(MUTED); path.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
             JPanel header = new JPanel(new GridLayout(0, 1));
-            header.setOpaque(false); header.add(title); header.add(path); add(header, BorderLayout.NORTH);
+            header.setOpaque(false); header.add(section); header.add(title); header.add(path); add(header, BorderLayout.NORTH);
             images.setOpaque(false);
             JScrollPane scroll = new JScrollPane(images); scroll.setBorder(null); scroll.getViewport().setBackground(PANEL);
             add(scroll, BorderLayout.CENTER);
@@ -314,8 +405,10 @@ public final class AppCumple extends JFrame {
             path.setText(folder.toString());
             images.removeAll();
             List<Path> files = imageFiles(folder);
+            section.setText(files.isEmpty() ? "GALERÍA · SIN IMÁGENES" : "GALERÍA · " + files.size() + " IMÁGENES");
             if (files.isEmpty()) {
-                JLabel empty = new JLabel("<html>Aun no hay imagenes.<br>Anade archivos JPG, PNG, GIF o BMP<br>en la carpeta indicada.</html>");
+                JLabel empty = new JLabel("<html><div style='text-align:center'><b>Esta galería está vacía</b><br><br>"
+                        + "Añade archivos JPG, PNG, GIF o BMP<br>en la carpeta indicada arriba.</div></html>");
                 empty.setForeground(MUTED); empty.setHorizontalAlignment(SwingConstants.CENTER);
                 empty.setBorder(new EmptyBorder(35, 8, 35, 8)); images.add(empty);
             } else for (Path file : files) addThumbnail(file);

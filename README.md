@@ -20,6 +20,8 @@ Requiere JDK 17 o superior. El proyecto usa Maven y no necesita dependencias ext
 - Activa **Modo unir capitales** y pulsa dos capitales para dibujar una linea entre ellas.
 - Puedes repetir el proceso para crear todas las uniones necesarias.
 - Selecciona una union de la lista y pulsa **Eliminar union seleccionada** para borrarla.
+- El botón **Cómo usar** abre una guía completa dentro de la aplicación.
+- **Cancelar selección** permite reiniciar una conexión que todavía no se ha completado.
 
 La aplicacion crea automaticamente las carpetas que falten al iniciarse. El repositorio ya incluye una carpeta para cada capital.
 
