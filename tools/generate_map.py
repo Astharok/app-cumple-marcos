@@ -8,8 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "tmp" / "mapdata" / "countries.geojson"
 SOURCE_URL = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson"
 OUTPUT = ROOT / "src" / "main" / "resources" / "images" / "mapa-europa-preciso.png"
-WIDTH, HEIGHT, SCALE = 1800, 1080, 2
-MIN_LON, MAX_LON, MIN_LAT, MAX_LAT = -25.0, 45.0, 30.0, 72.0
+WIDTH, HEIGHT, SCALE = 1200, 1450, 2
+# Recorte: desde el este de Francia hasta antes de Kiev, incluyendo Tunez y Helsinki.
+MIN_LON, MAX_LON, MIN_LAT, MAX_LAT = 8.0, 29.8, 35.0, 61.5
 
 
 def project(point):

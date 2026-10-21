@@ -19,14 +19,14 @@ import java.util.Set;
 
 /** Mapa interactivo de capitales europeas y sus recuerdos fotograficos. */
 public final class AppCumple extends JFrame {
-    private static final Color BG = new Color(14, 20, 33);
-    private static final Color PANEL = new Color(24, 33, 50);
+    private static final Color BG = new Color(12, 17, 27);
+    private static final Color PANEL = new Color(23, 30, 44);
     private static final Color LAND = new Color(66, 98, 105);
     private static final Color LAND_EDGE = new Color(117, 164, 159);
     private static final Color TEXT = new Color(238, 242, 248);
     private static final Color MUTED = new Color(169, 180, 198);
-    private static final Color ACCENT = new Color(255, 183, 77);
-    private static final Color SELECTED = new Color(255, 94, 120);
+    private static final Color ACCENT = new Color(75, 218, 178);
+    private static final Color SELECTED = new Color(255, 104, 133);
     private static final Path IMAGE_ROOT = Path.of("imagenes-capitales");
     private static final Set<String> MAIN_CAPITALS = Set.of(
             "Amsterdam", "Ankara", "Atenas", "Belgrado", "Berlin", "Berna", "Bratislava",
@@ -84,10 +84,7 @@ public final class AppCumple extends JFrame {
         guide.setForeground(MUTED);
         guide.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 13));
         JButton help = new JButton("Cómo usar");
-        help.setBackground(new Color(55, 67, 88));
-        help.setForeground(TEXT);
-        help.setFocusPainted(false);
-        help.setBorder(new EmptyBorder(9, 14, 9, 14));
+        styleButton(help, new Color(49, 63, 86), TEXT);
         help.addActionListener(e -> showHelp());
         JPanel guidance = new JPanel(new FlowLayout(FlowLayout.RIGHT, 14, 0));
         guidance.setOpaque(false);
@@ -97,7 +94,7 @@ public final class AppCumple extends JFrame {
         root.add(heading, BorderLayout.NORTH);
 
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, createMapCard(), createSidebar());
-        split.setResizeWeight(.72);
+        split.setResizeWeight(.67);
         split.setContinuousLayout(true);
         split.setDividerSize(7);
         split.setBorder(null);
@@ -173,10 +170,7 @@ public final class AppCumple extends JFrame {
         connectionScroll.setBorder(BorderFactory.createLineBorder(new Color(51, 63, 83)));
         connectionArea.add(connectionScroll, BorderLayout.CENTER);
 
-        connectMode.setFocusPainted(false);
-        connectMode.setBackground(ACCENT);
-        connectMode.setBorder(new EmptyBorder(10, 12, 10, 12));
-        connectMode.setForeground(new Color(15, 23, 35));
+        styleButton(connectMode, ACCENT, new Color(12, 25, 28));
         connectMode.addActionListener(e -> {
             firstForConnection = null;
             connectMode.setText(connectMode.isSelected() ? "Conectando: selecciona 2 capitales" : "Conectar capitales");
@@ -185,10 +179,7 @@ public final class AppCumple extends JFrame {
             mapPanel.repaint();
         });
         JButton delete = new JButton("Eliminar ruta seleccionada");
-        delete.setBackground(SELECTED);
-        delete.setForeground(Color.WHITE);
-        delete.setFocusPainted(false);
-        delete.setBorder(new EmptyBorder(9, 12, 9, 12));
+        styleButton(delete, SELECTED, Color.WHITE);
         delete.addActionListener(e -> {
             int index = connectionList.getSelectedIndex();
             if (index >= 0) {
@@ -202,10 +193,7 @@ public final class AppCumple extends JFrame {
         instruction.setBorder(new EmptyBorder(2, 2, 2, 2));
 
         JButton cancel = new JButton("Cancelar selección");
-        cancel.setBackground(new Color(55, 67, 88));
-        cancel.setForeground(TEXT);
-        cancel.setFocusPainted(false);
-        cancel.setBorder(new EmptyBorder(8, 12, 8, 12));
+        styleButton(cancel, new Color(55, 67, 88), TEXT);
         cancel.addActionListener(e -> {
             firstForConnection = null;
             updateInstruction();
@@ -220,6 +208,18 @@ public final class AppCumple extends JFrame {
         connectionArea.add(controls, BorderLayout.SOUTH);
         sidebar.add(connectionArea, BorderLayout.SOUTH);
         return sidebar;
+    }
+
+    private static void styleButton(AbstractButton button, Color background, Color foreground) {
+        button.setBackground(background);
+        button.setForeground(foreground);
+        button.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(true);
+        button.setOpaque(true);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setBorder(new EmptyBorder(11, 16, 11, 16));
     }
 
     private void capitalClicked(Capital capital) {
@@ -259,7 +259,7 @@ public final class AppCumple extends JFrame {
     }
 
     private final class MapPanel extends JPanel {
-        private static final double MIN_LON = -25.0, MAX_LON = 45.0, MIN_LAT = 30.0, MAX_LAT = 72.0;
+        private static final double MIN_LON = 8.0, MAX_LON = 29.8, MIN_LAT = 35.0, MAX_LAT = 61.5;
         private final BufferedImage backgroundMap = loadBackgroundMap();
         private Capital hovered;
 
