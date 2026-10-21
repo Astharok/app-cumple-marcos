@@ -28,6 +28,12 @@ public final class AppCumple extends JFrame {
     private static final Color ACCENT = new Color(255, 183, 77);
     private static final Color SELECTED = new Color(255, 94, 120);
     private static final Path IMAGE_ROOT = Path.of("imagenes-capitales");
+    private static final Set<String> MAIN_CAPITALS = Set.of(
+            "Amsterdam", "Ankara", "Atenas", "Belgrado", "Berlin", "Berna", "Bratislava",
+            "Bruselas", "Bucarest", "Budapest", "Chisinau", "Copenhague", "Dublin", "Estocolmo",
+            "Helsinki", "Kiev", "Lisboa", "Liubliana", "Londres", "Madrid", "Minsk", "Moscu",
+            "Oslo", "Paris", "Podgorica", "Praga", "Pristina", "Reikiavik", "Riga", "Roma",
+            "Sarajevo", "Skopie", "Sofia", "Tallin", "Tirana", "Varsovia", "Viena", "Vilna", "Zagreb");
 
     private final List<Capital> capitals = createCapitals();
     private final List<Connection> connections = new ArrayList<>();
@@ -165,7 +171,7 @@ public final class AppCumple extends JFrame {
     }
 
     private final class MapPanel extends JPanel {
-        private static final double MIN_LON = 5.5, MAX_LON = 35.5, MIN_LAT = 33.5, MAX_LAT = 51.5;
+        private static final double MIN_LON = -14.0, MAX_LON = 52.0, MIN_LAT = 30.0, MAX_LAT = 72.0;
         private final BufferedImage backgroundMap = loadBackgroundMap();
         private Capital hovered;
 
@@ -238,12 +244,16 @@ public final class AppCumple extends JFrame {
                 g.fillOval(point.x - radius, point.y - radius, radius * 2, radius * 2);
                 g.setColor(new Color(8, 17, 28)); g.setStroke(new BasicStroke(2f));
                 g.drawOval(point.x - radius, point.y - radius, radius * 2, radius * 2);
-                if (hot) {
-                    g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 13));
-                    int boxWidth = g.getFontMetrics().stringWidth(capital.name()) + 14;
-                    int x = Math.min(getWidth() - boxWidth - 5, point.x + 10), y = Math.max(22, point.y - 12);
-                    g.setColor(new Color(8, 17, 28, 225)); g.fillRoundRect(x, y - 17, boxWidth, 23, 9, 9);
-                    g.setColor(TEXT); g.drawString(capital.name(), x + 7, y);
+                if (MAIN_CAPITALS.contains(capital.name())) {
+                    int fontSize = hot ? 13 : 11;
+                    g.setFont(new Font(Font.SANS_SERIF, hot ? Font.BOLD : Font.PLAIN, fontSize));
+                    int boxWidth = g.getFontMetrics().stringWidth(capital.name()) + 10;
+                    int x = Math.min(getWidth() - boxWidth - 4, point.x + 8);
+                    int y = Math.max(18, point.y - 7);
+                    g.setColor(new Color(250, 250, 248, hot ? 235 : 205));
+                    g.fillRoundRect(x, y - fontSize - 3, boxWidth, fontSize + 7, 7, 7);
+                    g.setColor(new Color(20, 23, 27));
+                    g.drawString(capital.name(), x + 5, y);
                 }
             }
         }
@@ -257,18 +267,23 @@ public final class AppCumple extends JFrame {
 
         private Point project(double longitude, double latitude) {
             Rectangle map = mapBounds();
+            // El mapa de referencia desplaza Islandia ligeramente para incluirla en el encuadre.
+            if (longitude < -18 && latitude > 60) {
+                return new Point(map.x + (int) (map.width * .085), map.y + (int) (map.height * .13));
+            }
             double x = map.x + (longitude - MIN_LON) / (MAX_LON - MIN_LON) * map.width;
             double y = map.y + (MAX_LAT - latitude) / (MAX_LAT - MIN_LAT) * map.height;
             return new Point((int) Math.round(x), (int) Math.round(y));
         }
 
         private boolean isVisible(Capital capital) {
-            return capital.longitude() >= MIN_LON && capital.longitude() <= MAX_LON
+            return (capital.name().equals("Reikiavik") || capital.longitude() >= MIN_LON)
+                    && capital.longitude() <= MAX_LON
                     && capital.latitude() >= MIN_LAT && capital.latitude() <= MAX_LAT;
         }
 
         private BufferedImage loadBackgroundMap() {
-            try (InputStream stream = AppCumple.class.getResourceAsStream("/images/mapa-europa-bn.png")) {
+            try (InputStream stream = AppCumple.class.getResourceAsStream("/images/mapa-europa-capitales.png")) {
                 if (stream == null) throw new IOException("No se encontro el mapa");
                 return ImageIO.read(stream);
             } catch (IOException ex) {
