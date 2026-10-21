@@ -4,243 +4,389 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Random;
+import java.util.Locale;
+import java.util.Set;
 
-/** Aplicacion de demostracion: galeria festiva a pantalla maximizada. */
+/** Mapa interactivo de capitales europeas y sus recuerdos fotograficos. */
 public final class AppCumple extends JFrame {
-    private static final Color BACKGROUND = new Color(18, 20, 38);
-    private static final Color CARD = new Color(31, 34, 58);
-    private static final Color ACCENT = new Color(255, 102, 120);
-    private static final Color MUTED = new Color(194, 198, 218);
+    private static final Color BG = new Color(14, 20, 33);
+    private static final Color PANEL = new Color(24, 33, 50);
+    private static final Color LAND = new Color(66, 98, 105);
+    private static final Color LAND_EDGE = new Color(117, 164, 159);
+    private static final Color TEXT = new Color(238, 242, 248);
+    private static final Color MUTED = new Color(169, 180, 198);
+    private static final Color ACCENT = new Color(255, 183, 77);
+    private static final Color SELECTED = new Color(255, 94, 120);
+    private static final Path IMAGE_ROOT = Path.of("imagenes-capitales");
 
-    private final List<Slide> slides;
-    private final Random random = new Random();
-    private final ImagePanel imagePanel = new ImagePanel();
-    private final JLabel titleLabel = new JLabel();
-    private final JTextArea descriptionArea = new JTextArea();
-    private final JLabel counterLabel = new JLabel();
-    private int currentIndex;
+    private final List<Capital> capitals = createCapitals();
+    private final List<Connection> connections = new ArrayList<>();
+    private final DefaultListModel<Connection> connectionModel = new DefaultListModel<>();
+    private final MapPanel mapPanel = new MapPanel();
+    private final GalleryPanel galleryPanel = new GalleryPanel();
+    private final JToggleButton connectMode = new JToggleButton("Modo unir capitales");
+    private final JLabel instruction = new JLabel("Activa el modo unir para seleccionar dos capitales.");
+    private Capital firstForConnection;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            setSystemLookAndFeel();
+            setLookAndFeel();
             new AppCumple().setVisible(true);
         });
     }
 
     public AppCumple() {
-        super("Momentos de celebracion");
-        slides = createRandomSlides(loadCollage());
+        super("Capitales de Europa");
+        createImageDirectories();
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(900, 600));
+        setMinimumSize(new Dimension(1100, 700));
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         setContentPane(createContent());
-        configureKeyboard();
-        showSlide(0);
     }
 
-    private JPanel createContent() {
-        JPanel root = new JPanel(new BorderLayout(0, 0));
-        root.setBackground(BACKGROUND);
-        root.setBorder(new EmptyBorder(28, 42, 28, 42));
-
-        JLabel header = new JLabel("UNA PEQUENA COLECCION DE MOMENTOS");
-        header.setForeground(ACCENT);
-        header.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
-        header.setBorder(new EmptyBorder(0, 0, 20, 0));
-        root.add(header, BorderLayout.NORTH);
-
-        JPanel card = new JPanel(new GridLayout(1, 2, 34, 0));
-        card.setBackground(CARD);
-        card.setBorder(new EmptyBorder(28, 28, 28, 28));
-        card.add(imagePanel);
-        card.add(createTextPanel());
-        root.add(card, BorderLayout.CENTER);
+    private JComponent createContent() {
+        JPanel root = new JPanel(new BorderLayout(18, 18));
+        root.setBackground(BG);
+        root.setBorder(new EmptyBorder(20, 24, 20, 24));
+        JPanel heading = new JPanel(new BorderLayout());
+        heading.setOpaque(false);
+        JLabel title = new JLabel("CAPITALES DE EUROPA");
+        title.setForeground(TEXT);
+        title.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 25));
+        JLabel subtitle = new JLabel("Selecciona una capital para ver sus imagenes");
+        subtitle.setForeground(MUTED);
+        subtitle.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 15));
+        heading.add(title, BorderLayout.WEST);
+        heading.add(subtitle, BorderLayout.EAST);
+        root.add(heading, BorderLayout.NORTH);
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, mapPanel, createSidebar());
+        split.setResizeWeight(.72);
+        split.setDividerSize(8);
+        split.setBorder(null);
+        root.add(split, BorderLayout.CENTER);
         return root;
     }
 
-    private JPanel createTextPanel() {
-        JPanel panel = new JPanel();
-        panel.setOpaque(false);
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+    private JComponent createSidebar() {
+        JPanel sidebar = new JPanel(new BorderLayout(0, 14));
+        sidebar.setBackground(PANEL);
+        sidebar.setBorder(new EmptyBorder(18, 18, 18, 18));
+        sidebar.setMinimumSize(new Dimension(330, 500));
+        sidebar.setPreferredSize(new Dimension(390, 700));
+        galleryPanel.setPreferredSize(new Dimension(340, 330));
+        sidebar.add(galleryPanel, BorderLayout.CENTER);
 
-        titleLabel.setForeground(Color.WHITE);
-        titleLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 38));
-        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel connectionArea = new JPanel(new BorderLayout(0, 10));
+        connectionArea.setOpaque(false);
+        JLabel connectionTitle = new JLabel("UNIONES ENTRE CAPITALES");
+        connectionTitle.setForeground(TEXT);
+        connectionTitle.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
+        connectionArea.add(connectionTitle, BorderLayout.NORTH);
+        JList<Connection> connectionList = new JList<>(connectionModel);
+        connectionList.setBackground(new Color(18, 26, 41));
+        connectionList.setForeground(TEXT);
+        connectionList.setSelectionBackground(new Color(65, 78, 104));
+        connectionList.setVisibleRowCount(5);
+        connectionArea.add(new JScrollPane(connectionList), BorderLayout.CENTER);
 
-        descriptionArea.setEditable(false);
-        descriptionArea.setFocusable(false);
-        descriptionArea.setLineWrap(true);
-        descriptionArea.setWrapStyleWord(true);
-        descriptionArea.setOpaque(false);
-        descriptionArea.setForeground(MUTED);
-        descriptionArea.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 20));
-        descriptionArea.setAlignmentX(Component.LEFT_ALIGNMENT);
-        descriptionArea.setMaximumSize(new Dimension(Integer.MAX_VALUE, 210));
-
-        counterLabel.setForeground(MUTED);
-        counterLabel.setFont(new Font(Font.MONOSPACED, Font.BOLD, 15));
-
-        JButton previous = createButton("Anterior", false);
-        previous.addActionListener(e -> move(-1));
-        JButton next = createButton("Siguiente", true);
-        next.addActionListener(e -> move(1));
-        JButton surprise = createButton("Sorprendeme", false);
-        surprise.addActionListener(e -> showSlide(random.nextInt(slides.size())));
-
-        JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        connectMode.setFocusPainted(false);
+        connectMode.setBackground(new Color(50, 65, 88));
+        connectMode.setForeground(TEXT);
+        connectMode.addActionListener(e -> {
+            firstForConnection = null;
+            updateInstruction();
+            mapPanel.repaint();
+        });
+        JButton delete = new JButton("Eliminar union seleccionada");
+        delete.setBackground(SELECTED);
+        delete.setForeground(Color.WHITE);
+        delete.setFocusPainted(false);
+        delete.addActionListener(e -> {
+            int index = connectionList.getSelectedIndex();
+            if (index >= 0) {
+                connections.remove(index);
+                connectionModel.remove(index);
+                mapPanel.repaint();
+            }
+        });
+        instruction.setForeground(MUTED);
+        instruction.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
+        JPanel controls = new JPanel(new GridLayout(0, 1, 0, 7));
         controls.setOpaque(false);
-        controls.setAlignmentX(Component.LEFT_ALIGNMENT);
-        controls.add(previous);
-        controls.add(next);
-        controls.add(surprise);
-
-        panel.add(Box.createVerticalGlue());
-        panel.add(titleLabel);
-        panel.add(Box.createVerticalStrut(22));
-        panel.add(descriptionArea);
-        panel.add(Box.createVerticalStrut(14));
-        panel.add(counterLabel);
-        panel.add(Box.createVerticalStrut(28));
-        panel.add(controls);
-        panel.add(Box.createVerticalGlue());
-        return panel;
+        controls.add(connectMode);
+        controls.add(instruction);
+        controls.add(delete);
+        connectionArea.add(controls, BorderLayout.SOUTH);
+        sidebar.add(connectionArea, BorderLayout.SOUTH);
+        return sidebar;
     }
 
-    private JButton createButton(String text, boolean primary) {
-        JButton button = new JButton(text);
-        button.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 15));
-        button.setFocusPainted(false);
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setBorder(new EmptyBorder(12, 18, 12, 18));
-        button.setBackground(primary ? ACCENT : new Color(55, 59, 87));
-        button.setForeground(Color.WHITE);
-        return button;
-    }
-
-    private void move(int offset) {
-        showSlide(Math.floorMod(currentIndex + offset, slides.size()));
-    }
-
-    private void showSlide(int index) {
-        currentIndex = index;
-        Slide slide = slides.get(index);
-        titleLabel.setText(slide.title());
-        descriptionArea.setText(slide.description());
-        counterLabel.setText(String.format("%02d  /  %02d", index + 1, slides.size()));
-        imagePanel.setImage(slide.image());
-    }
-
-    private void configureKeyboard() {
-        JRootPane root = getRootPane();
-        root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
-                .put(KeyStroke.getKeyStroke("RIGHT"), "next");
-        root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
-                .put(KeyStroke.getKeyStroke("LEFT"), "previous");
-        root.getActionMap().put("next", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent e) { move(1); }
-        });
-        root.getActionMap().put("previous", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent e) { move(-1); }
-        });
-    }
-
-    private List<Slide> createRandomSlides(BufferedImage collage) {
-        String[] titles = {"Brindis inesperado", "Deseos encendidos", "Regalos con misterio",
-                "Una noche para recordar", "Risas de colores", "El mejor momento"};
-        String[] descriptions = {
-                "A veces basta una mesa, buena compania y un poco de musica para convertir una tarde cualquiera en un recuerdo enorme.",
-                "Cada vela guarda un deseo distinto. Hoy toca pedirlos todos y dejar que la celebracion haga el resto.",
-                "Los mejores regalos no siempre llevan lazo: tambien llegan en forma de abrazos, historias y carcajadas compartidas.",
-                "Luces suaves, cielo despejado y conversaciones que se alargan sin mirar el reloj. Ese es el plan perfecto.",
-                "Que nunca falten motivos para celebrar, colores para decorar y personas con las que compartir el momento.",
-                "Esta es una version de prueba: los textos y el orden cambian cada vez que se abre la aplicacion."
-        };
-
-        List<BufferedImage> images = splitCollage(collage);
-        List<String> titleList = new ArrayList<>(List.of(titles));
-        List<String> textList = new ArrayList<>(List.of(descriptions));
-        Collections.shuffle(titleList, random);
-        Collections.shuffle(textList, random);
-
-        List<Slide> result = new ArrayList<>();
-        for (int i = 0; i < images.size(); i++) {
-            result.add(new Slide(titleList.get(i), textList.get(i), images.get(i)));
+    private void capitalClicked(Capital capital) {
+        galleryPanel.showCapital(capital);
+        if (!connectMode.isSelected()) return;
+        if (firstForConnection == null) {
+            firstForConnection = capital;
+        } else if (!firstForConnection.equals(capital)) {
+            Connection connection = new Connection(firstForConnection, capital);
+            if (connections.stream().noneMatch(current -> current.samePair(connection))) {
+                connections.add(connection);
+                connectionModel.addElement(connection);
+            }
+            firstForConnection = null;
         }
-        Collections.shuffle(result, random);
-        return result;
+        updateInstruction();
+        mapPanel.repaint();
     }
 
-    private static List<BufferedImage> splitCollage(BufferedImage source) {
-        int halfWidth = source.getWidth() / 2;
-        int halfHeight = source.getHeight() / 2;
-        int gutter = Math.max(4, source.getWidth() / 200);
-        return List.of(
-                source.getSubimage(0, 0, halfWidth - gutter, halfHeight - gutter),
-                source.getSubimage(halfWidth + gutter, 0, source.getWidth() - halfWidth - gutter, halfHeight - gutter),
-                source.getSubimage(0, halfHeight + gutter, halfWidth - gutter, source.getHeight() - halfHeight - gutter),
-                source.getSubimage(halfWidth + gutter, halfHeight + gutter,
-                        source.getWidth() - halfWidth - gutter, source.getHeight() - halfHeight - gutter)
-        );
+    private void updateInstruction() {
+        if (!connectMode.isSelected()) instruction.setText("Activa el modo unir para seleccionar dos capitales.");
+        else if (firstForConnection == null) instruction.setText("Selecciona la primera capital del par.");
+        else instruction.setText("Primera: " + firstForConnection.name() + ". Selecciona la segunda.");
     }
 
-    private static BufferedImage loadCollage() {
-        try (InputStream stream = AppCumple.class.getResourceAsStream("/images/fiesta-collage.png")) {
-            if (stream == null) throw new IOException("Recurso no encontrado");
-            return ImageIO.read(stream);
-        } catch (IOException ex) {
-            BufferedImage fallback = new BufferedImage(1000, 1000, BufferedImage.TYPE_INT_RGB);
-            Graphics2D g = fallback.createGraphics();
-            g.setPaint(new GradientPaint(0, 0, ACCENT, 1000, 1000, new Color(62, 205, 190)));
-            g.fillRect(0, 0, 1000, 1000);
-            g.dispose();
-            return fallback;
+    private void createImageDirectories() {
+        for (Capital capital : capitals) {
+            try {
+                Files.createDirectories(IMAGE_ROOT.resolve(capital.folder()));
+            } catch (IOException ex) {
+                System.err.println("No se pudo crear la carpeta de " + capital.name() + ": " + ex.getMessage());
+            }
         }
     }
 
-    private static void setSystemLookAndFeel() {
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (ReflectiveOperationException | UnsupportedLookAndFeelException ignored) {
-            // Swing utilizara su apariencia multiplataforma.
-        }
-    }
+    private final class MapPanel extends JPanel {
+        private static final double MIN_LON = -25, MAX_LON = 45, MIN_LAT = 34, MAX_LAT = 72;
+        private Capital hovered;
 
-    private record Slide(String title, String description, BufferedImage image) { }
-
-    private static final class ImagePanel extends JPanel {
-        private BufferedImage image;
-
-        private ImagePanel() {
-            setOpaque(true);
-            setBackground(new Color(24, 26, 46));
-        }
-
-        void setImage(BufferedImage image) {
-            this.image = image;
-            repaint();
+        private MapPanel() {
+            setBackground(new Color(18, 43, 63));
+            setToolTipText("");
+            MouseAdapter mouse = new MouseAdapter() {
+                @Override public void mouseMoved(MouseEvent e) {
+                    Capital nearest = findCapital(e.getPoint());
+                    if (nearest != hovered) {
+                        hovered = nearest;
+                        setToolTipText(nearest == null ? null : nearest.name());
+                        repaint();
+                    }
+                }
+                @Override public void mouseExited(MouseEvent e) { hovered = null; repaint(); }
+                @Override public void mouseClicked(MouseEvent e) {
+                    Capital capital = findCapital(e.getPoint());
+                    if (capital != null) capitalClicked(capital);
+                }
+            };
+            addMouseListener(mouse);
+            addMouseMotionListener(mouse);
         }
 
         @Override protected void paintComponent(Graphics graphics) {
             super.paintComponent(graphics);
-            if (image == null) return;
             Graphics2D g = (Graphics2D) graphics.create();
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-            double scale = Math.max((double) getWidth() / image.getWidth(),
-                    (double) getHeight() / image.getHeight());
-            int width = (int) Math.ceil(image.getWidth() * scale);
-            int height = (int) Math.ceil(image.getHeight() * scale);
-            int x = (getWidth() - width) / 2;
-            int y = (getHeight() - height) / 2;
-            g.drawImage(image, x, y, width, height, null);
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            paintOcean(g);
+            paintEurope(g);
+            paintConnections(g);
+            paintCapitals(g);
             g.dispose();
         }
+
+        private void paintOcean(Graphics2D g) {
+            g.setPaint(new GradientPaint(0, 0, new Color(21, 57, 79), 0, getHeight(), new Color(10, 30, 50)));
+            g.fillRect(0, 0, getWidth(), getHeight());
+            g.setColor(new Color(255, 255, 255, 12));
+            for (int y = 35; y < getHeight(); y += 45) g.drawLine(0, y, getWidth(), y);
+        }
+
+        private void paintEurope(Graphics2D g) {
+            double[][] outline = {{-10,36},{-9,43},{-4,44},{-1,46},{-5,48},{-10,52},{-8,58},{-3,59},
+                    {1,51},{5,52},{8,55},{11,55},{8,58},{5,58},{8,63},{12,68},{18,71},{26,70},
+                    {31,66},{28,61},{32,59},{38,57},{42,51},{37,45},{29,42},{25,39},{20,40},{17,45},
+                    {13,45},{15,41},{12,38},{6,43},{3,43},{0,40}};
+            Path2D path = new Path2D.Double();
+            for (int i = 0; i < outline.length; i++) {
+                Point p = project(outline[i][0], outline[i][1]);
+                if (i == 0) path.moveTo(p.x, p.y); else path.lineTo(p.x, p.y);
+            }
+            path.closePath();
+            g.setColor(LAND); g.fill(path);
+            g.setStroke(new BasicStroke(2f)); g.setColor(LAND_EDGE); g.draw(path);
+            paintIsland(g, -4, 55, 4, 9, -12);
+            paintIsland(g, -19, 65, 7, 4, -8);
+            paintIsland(g, 16, 38, 3, 2, 0);
+            paintIsland(g, 15, 42, 2, 5, -22);
+        }
+
+        private void paintIsland(Graphics2D g, double lon, double lat, double lonSize, double latSize, double angle) {
+            Point center = project(lon, lat), edge = project(lon + lonSize, lat - latSize);
+            int width = Math.max(8, Math.abs(edge.x - center.x)), height = Math.max(8, Math.abs(edge.y - center.y));
+            g.rotate(Math.toRadians(angle), center.x, center.y);
+            g.setColor(LAND); g.fillOval(center.x - width / 2, center.y - height / 2, width, height);
+            g.setColor(LAND_EDGE); g.drawOval(center.x - width / 2, center.y - height / 2, width, height);
+            g.rotate(Math.toRadians(-angle), center.x, center.y);
+        }
+
+        private void paintConnections(Graphics2D g) {
+            g.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g.setColor(new Color(255, 192, 92, 210));
+            for (Connection connection : connections) {
+                Point a = project(connection.a().longitude(), connection.a().latitude());
+                Point b = project(connection.b().longitude(), connection.b().latitude());
+                g.drawLine(a.x, a.y, b.x, b.y);
+            }
+        }
+
+        private void paintCapitals(Graphics2D g) {
+            for (Capital capital : capitals) {
+                Point point = project(capital.longitude(), capital.latitude());
+                boolean pending = capital.equals(firstForConnection), hot = capital.equals(hovered);
+                int radius = pending || hot ? 8 : 6;
+                g.setColor(pending ? SELECTED : hot ? Color.WHITE : ACCENT);
+                g.fillOval(point.x - radius, point.y - radius, radius * 2, radius * 2);
+                g.setColor(new Color(8, 17, 28)); g.setStroke(new BasicStroke(2f));
+                g.drawOval(point.x - radius, point.y - radius, radius * 2, radius * 2);
+                if (hot) {
+                    g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 13));
+                    int boxWidth = g.getFontMetrics().stringWidth(capital.name()) + 14;
+                    int x = Math.min(getWidth() - boxWidth - 5, point.x + 10), y = Math.max(22, point.y - 12);
+                    g.setColor(new Color(8, 17, 28, 225)); g.fillRoundRect(x, y - 17, boxWidth, 23, 9, 9);
+                    g.setColor(TEXT); g.drawString(capital.name(), x + 7, y);
+                }
+            }
+        }
+
+        private Capital findCapital(Point mouse) {
+            return capitals.stream().filter(c -> project(c.longitude(), c.latitude()).distance(mouse) <= 13)
+                    .min(Comparator.comparingDouble(c -> project(c.longitude(), c.latitude()).distance(mouse)))
+                    .orElse(null);
+        }
+
+        private Point project(double longitude, double latitude) {
+            int margin = 28;
+            double x = margin + (longitude - MIN_LON) / (MAX_LON - MIN_LON) * (getWidth() - margin * 2.0);
+            double y = margin + (MAX_LAT - latitude) / (MAX_LAT - MIN_LAT) * (getHeight() - margin * 2.0);
+            return new Point((int) Math.round(x), (int) Math.round(y));
+        }
+    }
+
+    private static final class GalleryPanel extends JPanel {
+        private final JLabel title = new JLabel("Selecciona una capital");
+        private final JLabel path = new JLabel("Las fotografias apareceran aqui.");
+        private final JPanel images = new JPanel(new GridLayout(0, 2, 8, 8));
+
+        private GalleryPanel() {
+            setOpaque(false); setLayout(new BorderLayout(0, 10));
+            title.setForeground(TEXT); title.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 24));
+            path.setForeground(MUTED); path.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
+            JPanel header = new JPanel(new GridLayout(0, 1));
+            header.setOpaque(false); header.add(title); header.add(path); add(header, BorderLayout.NORTH);
+            images.setOpaque(false);
+            JScrollPane scroll = new JScrollPane(images); scroll.setBorder(null); scroll.getViewport().setBackground(PANEL);
+            add(scroll, BorderLayout.CENTER);
+        }
+
+        private void showCapital(Capital capital) {
+            title.setText(capital.name());
+            Path folder = IMAGE_ROOT.resolve(capital.folder());
+            path.setText(folder.toString());
+            images.removeAll();
+            List<Path> files = imageFiles(folder);
+            if (files.isEmpty()) {
+                JLabel empty = new JLabel("<html>Aun no hay imagenes.<br>Anade archivos JPG, PNG, GIF o BMP<br>en la carpeta indicada.</html>");
+                empty.setForeground(MUTED); empty.setHorizontalAlignment(SwingConstants.CENTER);
+                empty.setBorder(new EmptyBorder(35, 8, 35, 8)); images.add(empty);
+            } else for (Path file : files) addThumbnail(file);
+            images.revalidate(); images.repaint();
+        }
+
+        private void addThumbnail(Path file) {
+            try {
+                BufferedImage source = ImageIO.read(file.toFile());
+                if (source == null) return;
+                JButton button = new JButton(new ImageIcon(scaleToFit(source, 165, 120)));
+                button.setToolTipText(file.getFileName().toString());
+                button.setBorder(BorderFactory.createLineBorder(new Color(70, 84, 105), 1));
+                button.setBackground(new Color(18, 26, 41));
+                button.addActionListener(e -> showLarge(file, source));
+                images.add(button);
+            } catch (IOException ignored) { }
+        }
+
+        private void showLarge(Path file, BufferedImage source) {
+            Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+            Image scaled = scaleToFit(source, (int) (screen.width * .72), (int) (screen.height * .72));
+            JOptionPane.showMessageDialog(this, new JLabel(new ImageIcon(scaled)), file.getFileName().toString(), JOptionPane.PLAIN_MESSAGE);
+        }
+
+        private static Image scaleToFit(BufferedImage image, int maxWidth, int maxHeight) {
+            double ratio = Math.min(1d, Math.min((double) maxWidth / image.getWidth(), (double) maxHeight / image.getHeight()));
+            return image.getScaledInstance(Math.max(1, (int) (image.getWidth() * ratio)),
+                    Math.max(1, (int) (image.getHeight() * ratio)), Image.SCALE_SMOOTH);
+        }
+
+        private static List<Path> imageFiles(Path folder) {
+            if (!Files.isDirectory(folder)) return List.of();
+            Set<String> extensions = Set.of("jpg", "jpeg", "png", "gif", "bmp");
+            try (var stream = Files.list(folder)) {
+                return stream.filter(Files::isRegularFile).filter(file -> {
+                    String name = file.getFileName().toString().toLowerCase(Locale.ROOT);
+                    int dot = name.lastIndexOf('.');
+                    return dot >= 0 && extensions.contains(name.substring(dot + 1));
+                }).sorted().toList();
+            } catch (IOException ex) { return List.of(); }
+        }
+    }
+
+    private static List<Capital> createCapitals() {
+        return List.of(
+                c("Amsterdam","amsterdam",52.3676,4.9041),c("Andorra la Vella","andorra-la-vella",42.5063,1.5218),
+                c("Ankara","ankara",39.9334,32.8597),c("Atenas","atenas",37.9838,23.7275),
+                c("Belgrado","belgrado",44.7866,20.4489),c("Berlin","berlin",52.5200,13.4050),
+                c("Berna","berna",46.9480,7.4474),c("Bratislava","bratislava",48.1486,17.1077),
+                c("Bruselas","bruselas",50.8503,4.3517),c("Bucarest","bucarest",44.4268,26.1025),
+                c("Budapest","budapest",47.4979,19.0402),c("Chisinau","chisinau",47.0105,28.8638),
+                c("Copenhague","copenhague",55.6761,12.5683),c("Dublin","dublin",53.3498,-6.2603),
+                c("Estocolmo","estocolmo",59.3293,18.0686),c("Helsinki","helsinki",60.1699,24.9384),
+                c("Kiev","kiev",50.4501,30.5234),c("La Valeta","la-valeta",35.8989,14.5146),
+                c("Lisboa","lisboa",38.7223,-9.1393),c("Liubliana","liubliana",46.0569,14.5058),
+                c("Londres","londres",51.5074,-0.1278),c("Luxemburgo","luxemburgo",49.6116,6.1319),
+                c("Madrid","madrid",40.4168,-3.7038),c("Minsk","minsk",53.9006,27.5590),
+                c("Monaco","monaco",43.7384,7.4246),c("Moscu","moscu",55.7558,37.6173),
+                c("Nicosia","nicosia",35.1856,33.3823),c("Oslo","oslo",59.9139,10.7522),
+                c("Paris","paris",48.8566,2.3522),c("Podgorica","podgorica",42.4304,19.2594),
+                c("Praga","praga",50.0755,14.4378),c("Pristina","pristina",42.6629,21.1655),
+                c("Reikiavik","reikiavik",64.1466,-21.9426),c("Riga","riga",56.9496,24.1052),
+                c("Roma","roma",41.9028,12.4964),c("San Marino","san-marino",43.9424,12.4578),
+                c("Sarajevo","sarajevo",43.8563,18.4131),c("Skopie","skopie",41.9981,21.4254),
+                c("Sofia","sofia",42.6977,23.3219),c("Tallin","tallin",59.4370,24.7536),
+                c("Tirana","tirana",41.3275,19.8187),c("Vaduz","vaduz",47.1410,9.5209),
+                c("Varsovia","varsovia",52.2297,21.0122),c("Ciudad del Vaticano","vaticano",41.9029,12.4534),
+                c("Viena","viena",48.2082,16.3738),c("Vilna","vilna",54.6872,25.2797),
+                c("Zagreb","zagreb",45.8150,15.9819));
+    }
+
+    private static Capital c(String name, String folder, double latitude, double longitude) {
+        return new Capital(name, folder, latitude, longitude);
+    }
+    private static void setLookAndFeel() {
+        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); }
+        catch (ReflectiveOperationException | UnsupportedLookAndFeelException ignored) { }
+    }
+    private record Capital(String name, String folder, double latitude, double longitude) { }
+    private record Connection(Capital a, Capital b) {
+        boolean samePair(Connection other) {
+            return (a.equals(other.a) && b.equals(other.b)) || (a.equals(other.b) && b.equals(other.a));
+        }
+        @Override public String toString() { return a.name() + "  ↔  " + b.name(); }
     }
 }

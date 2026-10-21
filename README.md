@@ -1,6 +1,6 @@
 # App Cumple Marcos
 
-Aplicacion de escritorio Java Swing que abre maximizada y presenta cuatro escenas festivas con textos de demostracion aleatorios.
+Aplicacion de escritorio Java Swing que abre maximizada y muestra un mapa interactivo de Europa con sus capitales.
 
 ## Abrir en NetBeans
 
@@ -12,11 +12,15 @@ Aplicacion de escritorio Java Swing que abre maximizada y presenta cuatro escena
 
 Requiere JDK 17 o superior. El proyecto usa Maven y no necesita dependencias externas.
 
-## Controles
+## Uso
 
-- Botones **Anterior**, **Siguiente** y **Sorprendeme**.
-- Flechas izquierda y derecha del teclado.
-- En cada inicio se mezclan los titulos, descripciones y el orden de las escenas.
+- Haz clic en una capital para abrir su galeria.
+- Coloca imagenes JPG, JPEG, PNG, GIF o BMP dentro de `imagenes-capitales/<capital>/`.
+- Activa **Modo unir capitales** y pulsa dos capitales para dibujar una linea entre ellas.
+- Puedes repetir el proceso para crear todas las uniones necesarias.
+- Selecciona una union de la lista y pulsa **Eliminar union seleccionada** para borrarla.
+
+La aplicacion crea automaticamente las carpetas que falten al iniciarse. El repositorio ya incluye una carpeta para cada capital.
 
 El JAR generado por NetBeans queda en `target/app-cumple-marcos-1.0-SNAPSHOT.jar`.
 Tambien se incluye una compilacion directa en `dist/AppCumpleMarcos.jar`.
