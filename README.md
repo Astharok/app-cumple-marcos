@@ -1,6 +1,6 @@
 # App Cumple Marcos
 
-Aplicacion de escritorio Java Swing que abre maximizada y muestra un mapa completo, limpio y en blanco y negro de Europa con sus principales capitales.
+Aplicacion de escritorio Java Swing que abre maximizada y muestra un mapa cartografico preciso, limpio y en blanco y negro de Europa y el Mediterraneo con sus principales capitales, incluida Tunez.
 
 ## Abrir en NetBeans
 
@@ -22,6 +22,9 @@ Requiere JDK 17 o superior. El proyecto usa Maven y no necesita dependencias ext
 - Selecciona una union de la lista y pulsa **Eliminar union seleccionada** para borrarla.
 
 La aplicacion crea automaticamente las carpetas que falten al iniciarse. El repositorio ya incluye una carpeta para cada capital.
+
+El fondo se genera a partir de geometria publica de Natural Earth mediante `tools/generate_map.py`. El mapa y los marcadores comparten exactamente los limites -25/45 de longitud y 30/72 de latitud.
+Natural Earth distribuye estos datos cartograficos como dominio publico.
 
 El JAR generado por NetBeans queda en `target/app-cumple-marcos-1.0-SNAPSHOT.jar`.
 Tambien se incluye una compilacion directa en `dist/AppCumpleMarcos.jar`.

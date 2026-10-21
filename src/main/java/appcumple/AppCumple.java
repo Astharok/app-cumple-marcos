@@ -33,7 +33,7 @@ public final class AppCumple extends JFrame {
             "Bruselas", "Bucarest", "Budapest", "Chisinau", "Copenhague", "Dublin", "Estocolmo",
             "Helsinki", "Kiev", "Lisboa", "Liubliana", "Londres", "Madrid", "Minsk", "Moscu",
             "Oslo", "Paris", "Podgorica", "Praga", "Pristina", "Reikiavik", "Riga", "Roma",
-            "Sarajevo", "Skopie", "Sofia", "Tallin", "Tirana", "Varsovia", "Viena", "Vilna", "Zagreb");
+            "Sarajevo", "Skopie", "Sofia", "Tallin", "Tirana", "Tunez", "Varsovia", "Viena", "Vilna", "Zagreb");
 
     private final List<Capital> capitals = createCapitals();
     private final List<Connection> connections = new ArrayList<>();
@@ -171,7 +171,7 @@ public final class AppCumple extends JFrame {
     }
 
     private final class MapPanel extends JPanel {
-        private static final double MIN_LON = -14.0, MAX_LON = 52.0, MIN_LAT = 30.0, MAX_LAT = 72.0;
+        private static final double MIN_LON = -25.0, MAX_LON = 45.0, MIN_LAT = 30.0, MAX_LAT = 72.0;
         private final BufferedImage backgroundMap = loadBackgroundMap();
         private Capital hovered;
 
@@ -267,23 +267,18 @@ public final class AppCumple extends JFrame {
 
         private Point project(double longitude, double latitude) {
             Rectangle map = mapBounds();
-            // El mapa de referencia desplaza Islandia ligeramente para incluirla en el encuadre.
-            if (longitude < -18 && latitude > 60) {
-                return new Point(map.x + (int) (map.width * .085), map.y + (int) (map.height * .13));
-            }
             double x = map.x + (longitude - MIN_LON) / (MAX_LON - MIN_LON) * map.width;
             double y = map.y + (MAX_LAT - latitude) / (MAX_LAT - MIN_LAT) * map.height;
             return new Point((int) Math.round(x), (int) Math.round(y));
         }
 
         private boolean isVisible(Capital capital) {
-            return (capital.name().equals("Reikiavik") || capital.longitude() >= MIN_LON)
-                    && capital.longitude() <= MAX_LON
+            return capital.longitude() >= MIN_LON && capital.longitude() <= MAX_LON
                     && capital.latitude() >= MIN_LAT && capital.latitude() <= MAX_LAT;
         }
 
         private BufferedImage loadBackgroundMap() {
-            try (InputStream stream = AppCumple.class.getResourceAsStream("/images/mapa-europa-capitales.png")) {
+            try (InputStream stream = AppCumple.class.getResourceAsStream("/images/mapa-europa-preciso.png")) {
                 if (stream == null) throw new IOException("No se encontro el mapa");
                 return ImageIO.read(stream);
             } catch (IOException ex) {
@@ -388,6 +383,7 @@ public final class AppCumple extends JFrame {
                 c("Sarajevo","sarajevo",43.8563,18.4131),c("Skopie","skopie",41.9981,21.4254),
                 c("Sofia","sofia",42.6977,23.3219),c("Tallin","tallin",59.4370,24.7536),
                 c("Tirana","tirana",41.3275,19.8187),c("Vaduz","vaduz",47.1410,9.5209),
+                c("Tunez","tunez",36.8065,10.1815),
                 c("Varsovia","varsovia",52.2297,21.0122),c("Ciudad del Vaticano","vaticano",41.9029,12.4534),
                 c("Viena","viena",48.2082,16.3738),c("Vilna","vilna",54.6872,25.2797),
                 c("Zagreb","zagreb",45.8150,15.9819));
